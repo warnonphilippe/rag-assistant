@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-electron/
+release/
+.angular/
+tests/e2e/screenshots/
+*.log
+.DS_Store
+.env
+.env.*
+# Cahier des charges initial, hors dépôt
+init.md
