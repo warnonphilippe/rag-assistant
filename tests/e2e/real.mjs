@@ -16,7 +16,7 @@ symlinkSync(modelsDir, join(work, 'data', 'models'));
 const doc = join(work, 'guide-architecture.md');
 writeFileSync(doc, `# Guide d'architecture\n\n## Échanges entre services\n\nLes échanges entre domaines métier passent par des événements asynchrones publiés sur le bus de messages. Les appels REST synchrones restent admis pour les lectures à l'intérieur d'un même domaine.\n\n## Résilience\n\nChaque appel synchrone doit définir un délai d'expiration de deux secondes et un disjoncteur. Les messages en échec partent dans une file de rebut après trois reprises.\n`);
 
-const app = await electron.launch({ args: [root], cwd: root, env: { ...process.env, RAG_FAKE_LLM: '', RAG_DATA_DIR: join(work, 'data') } });
+const app = await electron.launch({ args: [root], cwd: root, env: { ...process.env, RAG_FAKE_LLM: '', RAG_DATA_DIR: join(work, 'data'), LOCAL_MODELS_DIR: modelsDir } });
 try {
   const page = await app.firstWindow();
   await page.setViewportSize({ width: 1360, height: 900 });
