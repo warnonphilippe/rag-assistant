@@ -1,0 +1,88 @@
+<header class="chat-head">
+  <h1>{{ title() }}</h1>
+  <label class="pill-select">
+    <app-icon name="themes" [size]="14" />
+    <span class="sr-only">{{ 'chat.themeFilter' | t }}</span>
+    <select [value]="api.chatCategory() ?? ''" (change)="setCategory($any($event.target).value)" data-testid="chat-theme">
+      <option value="">{{ 'chat.allThemes' | t }}</option>
+      @for (c of api.flatCategories(); track c.id) {
+        <option [value]="c.id">{{ '— '.repeat(c.depth) + c.name }}</option>
+      }
+    </select>
+  </label>
+  <span class="muted small">{{ 'chat.sources' | t: { n: api.status()?.sources?.total ?? 0 } }}</span>
+</header>
+
+<div class="chat-scroll" #scroll>
+  <div class="chat-col">
+    @if (!messages().length && !busy()) {
+      <div class="empty-state">
+        <h2>{{ 'chat.emptyTitle' | t }}</h2>
+        <p>{{ 'chat.emptyText' | t }}</p>
+        @if (!(api.status()?.sources?.total)) {
+          <p class="muted">{{ 'chat.emptyNoSources' | t }}</p>
+          <button class="btn" (click)="api.view.set('library')">{{ 'chat.goLibrary' | t }}</button>
+        }
+      </div>
+    }
+    @for (m of messages(); track m.id) {
+      @if (m.role === 'user') {
+        <div class="bubble-user">{{ m.content }}</div>
+      } @else {
+        <article class="answer" [class.answer-warn]="m.kind === 'model'" [attr.data-kind]="m.kind">
+          @switch (m.kind) {
+            @case ('grounded') { <div class="answer-tag"><app-icon name="check" [size]="14" />{{ 'chat.grounded' | t }}</div> }
+            @case ('documents') { <div class="answer-tag"><app-icon name="list" [size]="14" />{{ m.content }}</div> }
+            @case ('model') { <div class="banner-warn"><app-icon name="info" [size]="15" />{{ 'chat.model' | t }}</div> }
+            @case ('refused') { <div class="answer-tag tag-muted"><app-icon name="block" [size]="14" />{{ 'chat.refused' | t }}</div> }
+            @case ('empty') { <div class="answer-tag tag-muted"><app-icon name="info" [size]="14" />{{ 'chat.empty' | t }}</div> }
+          }
+          @if (m.kind !== 'documents') { <div class="answer-body" [innerHTML]="render(m.content)"></div> }
+          @if (m.citations.length) {
+            <div class="cite-grid">
+              @for (c of m.citations; track c.n) {
+                <button class="cite-card" (click)="openSource()" [title]="c.excerpt">
+                  <span class="cite-meta">[{{ c.n }}] {{ (c.kind === 'link' ? 'kind.link' : 'kind.file') | t }} · {{ c.section }}</span>
+                  <span class="cite-title">{{ c.docTitle }}</span>
+                  <span class="cite-excerpt">{{ c.excerpt }}</span>
+                </button>
+              }
+            </div>
+          }
+          @if (m.documents.length) {
+            @for (d of m.documents; track d.docId) {
+              <button class="doc-hit" (click)="openSource()">
+                <app-icon [name]="d.kind === 'link' ? 'link' : 'file'" [size]="18" />
+                <span class="doc-hit-text">
+                  <span class="doc-hit-title">{{ d.title }}</span>
+                  <span class="muted small">{{ d.section }} — {{ d.excerpt }}</span>
+                </span>
+                @for (c of d.categories.slice(0, 2); track c) { <span class="tag">{{ c }}</span> }
+              </button>
+            }
+          }
+          @if (m.kind === 'model') { <div class="muted small">{{ 'chat.modelSource' | t: { engine: m.engine ?? '' } }}</div> }
+        </article>
+      }
+    }
+    @if (busy()) {
+      <div class="bubble-user">{{ pendingQuestion() }}</div>
+      <article class="answer" aria-live="polite">
+        @if (streaming()) { <div class="answer-body" [innerHTML]="render(streaming())"></div> }
+        @else { <div class="muted thinking">{{ 'chat.thinking' | t }}</div> }
+      </article>
+    }
+  </div>
+</div>
+
+<div class="composer-wrap">
+  <form class="composer" (submit)="$event.preventDefault(); send()">
+    <label for="question" class="sr-only">{{ 'chat.question' | t }}</label>
+    <textarea id="question" rows="1" #box [placeholder]="'chat.placeholder' | t" [value]="draft()" [disabled]="busy()"
+      (input)="draft.set($any($event.target).value)" (keydown.enter)="onEnter($event)" data-testid="chat-input"></textarea>
+    <button type="submit" class="btn-send" [attr.aria-label]="'chat.send' | t" [disabled]="busy() || !draft().trim()" data-testid="chat-send">
+      <app-icon name="send" [size]="18" />
+    </button>
+  </form>
+  <div class="composer-hint">{{ 'chat.hint' | t }}</div>
+</div>

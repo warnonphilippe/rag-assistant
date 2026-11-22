@@ -24,9 +24,7 @@ const PATHS: Record<string, string> = {
 @Component({
   selector: 'app-icon',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<svg aria-hidden="true" [attr.width]="size()" [attr.height]="size()" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" [innerHTML]="svg()"></svg>`,
-  styles: ':host { display: inline-flex; flex-shrink: 0; }',
+  templateUrl: './icon.html',
 })
 export class Icon {
   private readonly sanitizer = inject(DomSanitizer);

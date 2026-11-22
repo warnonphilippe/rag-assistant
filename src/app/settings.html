@@ -1,0 +1,99 @@
+@if (api.settings(); as s) {
+  <div class="settings">
+    <h1>{{ 'set.title' | t }}</h1>
+
+    <section class="panel">
+      <h2>{{ 'set.engine' | t }}</h2>
+      <label class="option" [class.option-on]="s.engine === 'local'">
+        <input type="radio" name="engine" [checked]="s.engine === 'local'" (change)="set({ engine: 'local' })" data-testid="engine-local" />
+        <span class="option-text">
+          <span class="strong">{{ 'set.local' | t }} <span class="muted regular">· {{ 'set.localTag' | t }}</span></span>
+          <span class="small">{{ 'set.localText' | t }}</span>
+        </span>
+      </label>
+      <div class="option" [class.option-on]="s.engine === 'claude'">
+        <input type="radio" name="engine" id="engine-claude" [checked]="s.engine === 'claude'" [disabled]="!s.hasClaudeKey" (change)="set({ engine: 'claude' })" data-testid="engine-claude" />
+        <div class="option-text">
+          <label for="engine-claude" class="strong">{{ 'set.claude' | t }} <span class="muted regular">· {{ 'set.claudeTag' | t }}</span></label>
+          <span class="small">{{ 'set.claudeText' | t }}</span>
+          <div class="row">
+            <input type="password" class="input grow" autocomplete="off" [attr.aria-label]="'set.claudeKey' | t"
+              [placeholder]="(s.hasClaudeKey ? 'set.keySaved' : 'set.keyPlaceholder') | t" [value]="claudeKey()" (input)="claudeKey.set($any($event.target).value)" data-testid="claude-key" />
+            <button class="btn" (click)="saveSecret('claudeKey', claudeKey())" [disabled]="!claudeKey().trim()" data-testid="claude-save">{{ 'set.save' | t }}</button>
+            @if (s.hasClaudeKey) { <button class="btn btn-quiet" (click)="saveSecret('claudeKey', '')">{{ 'set.clear' | t }}</button> }
+          </div>
+          <span class="muted xsmall">{{ (s.hasClaudeKey ? 'set.keyNote' : 'set.needKey') | t }}</span>
+          <div class="row">
+            <label for="claude-model" class="grow">{{ 'set.claudeModel' | t }}</label>
+            <select id="claude-model" class="select" [value]="s.claudeModel" (change)="set({ claudeModel: $any($event.target).value })">
+              @for (m of models; track m.id) { <option [value]="m.id" [selected]="m.id === s.claudeModel">{{ m.label }}</option> }
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    @if (api.status()?.models?.length) {
+      <section class="panel">
+        <h2>{{ 'set.models' | t }}</h2>
+        @for (m of api.status()!.models; track m.id) {
+          <div class="row line">
+            <div class="grow">
+              <div class="strong">{{ m.label }}</div>
+              <div class="muted small">
+                @if (m.installed) { {{ 'set.installed' | t }} }
+                @else if (m.downloading) { {{ 'set.downloading' | t: { pct: pct(m.progress) } }} }
+                @else { {{ 'set.missing' | t: { size: m.sizeGb } }} }
+                @if (m.error) { · {{ m.error }} }
+              </div>
+            </div>
+            @if (m.installed) { <span class="tag">{{ 'nav.ready' | t }}</span> }
+          </div>
+        }
+        @if (missing()) { <div><button class="btn btn-primary" (click)="download()" [disabled]="downloading()">{{ 'set.download' | t }}</button></div> }
+      </section>
+    }
+
+    <section class="panel">
+      <h2>{{ 'set.links' | t }}</h2>
+      <div class="row">
+        <label for="period" class="grow"><span class="strong block">{{ 'set.check' | t }}</span><span class="muted small">{{ 'set.checkText' | t }}</span></label>
+        <select id="period" class="select" (change)="set({ refreshDays: +$any($event.target).value })" data-testid="refresh-days">
+          @for (p of periods; track p.days) { <option [value]="p.days" [selected]="p.days === s.refreshDays">{{ p.label | t }}</option> }
+        </select>
+      </div>
+      <label class="row line">
+        <span class="grow"><span class="strong block">{{ 'set.auto' | t }}</span><span class="muted small">{{ 'set.autoText' | t }}</span></span>
+        <input type="checkbox" class="check" [checked]="s.autoReindex" (change)="set({ autoReindex: $any($event.target).checked })" />
+      </label>
+      <div class="line stack">
+        <div><span class="strong">{{ 'set.confluence' | t }}</span> <span class="muted">· {{ 'set.optional' | t }}</span><div class="muted small">{{ 'set.confluenceText' | t }}</div></div>
+        <div class="grid3">
+          <input type="url" class="input" [attr.aria-label]="'set.confluenceUrl' | t" [placeholder]="'set.confluenceUrl' | t" [value]="s.confluenceBaseUrl" (change)="set({ confluenceBaseUrl: $any($event.target).value.trim() })" />
+          <input type="text" class="input" autocomplete="off" [attr.aria-label]="'set.confluenceUser' | t" [placeholder]="'set.confluenceUser' | t" [value]="s.confluenceUser" (change)="set({ confluenceUser: $any($event.target).value.trim() })" />
+          <input type="password" class="input" autocomplete="off" [attr.aria-label]="'set.confluenceToken' | t" [placeholder]="(s.hasConfluenceToken ? 'set.tokenSaved' : 'set.confluenceToken') | t"
+            (change)="saveSecret('confluenceToken', $any($event.target).value); $any($event.target).value = ''" />
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>{{ 'set.general' | t }}</h2>
+      <div class="row">
+        <label for="language" class="grow strong">{{ 'set.language' | t }}</label>
+        <select id="language" class="select" (change)="set({ language: $any($event.target).value })" data-testid="language">
+          <option value="fr" [selected]="s.language === 'fr'">Français</option>
+          <option value="en" [selected]="s.language === 'en'">English</option>
+        </select>
+      </div>
+      <div class="row line">
+        <div class="grow"><div class="strong">{{ 'set.library' | t }}</div><div class="muted small url">{{ s.libraryDir }}</div></div>
+        <button class="btn" (click)="pickDir()">{{ 'set.change' | t }}</button>
+      </div>
+      <label class="row line">
+        <span class="grow"><span class="strong block">{{ 'set.pii' | t }}</span><span class="muted small">{{ 'set.piiText' | t }}</span></span>
+        <input type="checkbox" class="check" [checked]="s.maskPii" (change)="set({ maskPii: $any($event.target).checked })" />
+      </label>
+    </section>
+  </div>
+}

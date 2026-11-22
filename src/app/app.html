@@ -1,0 +1,80 @@
+<div class="shell">
+  <nav class="sidebar" [attr.aria-label]="'nav.main' | t">
+    <div class="brand"><div class="brand-mark"><app-icon name="logo" /></div><div class="brand-name">Assistant RAG</div></div>
+
+    <div class="nav">
+      @for (item of items; track item.view) {
+        <button class="nav-item" [class.nav-on]="api.view() === item.view" [attr.aria-current]="api.view() === item.view ? 'page' : null"
+          (click)="api.view.set(item.view)" [attr.data-testid]="'nav-' + item.view">
+          <app-icon [name]="item.view" />
+          <span class="grow">{{ item.label | t }}</span>
+          @if (item.view === 'library' && badge()) { <span class="badge">{{ badge() }}</span> }
+        </button>
+      }
+    </div>
+
+    <div class="convs">
+      <div class="convs-head">
+        <div class="eyebrow-muted">{{ 'nav.conversations' | t }}</div>
+        <button class="icon-btn icon-btn-solid" (click)="newConversation()" [attr.aria-label]="'nav.newConversation' | t" [title]="'nav.newConversation' | t" data-testid="new-conversation">
+          <app-icon name="plus" [size]="15" />
+        </button>
+      </div>
+      <div class="convs-list">
+        @for (c of chat.conversations(); track c.id) {
+          <div class="conv" [class.conv-on]="chat.current() === c.id">
+            <button class="conv-open" (click)="openConversation(c.id)">{{ c.title }}</button>
+            <button class="icon-btn conv-del" (click)="chat.remove(c.id)" [attr.aria-label]="'nav.deleteConversation' | t" [title]="'nav.deleteConversation' | t"><app-icon name="close" [size]="13" /></button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="engine" data-testid="engine">
+      <span class="dot" [class.dot-off]="!engine()"></span>
+      <span class="grow">{{ engine() || ('nav.noEngine' | t) }}</span>
+      <span class="muted">{{ (engine() ? 'nav.ready' : 'nav.notReady') | t }}</span>
+    </div>
+  </nav>
+
+  <main class="main" [class.main-chat]="api.view() === 'chat'">
+    @switch (api.view()) {
+      @case ('chat') { <app-chat /> }
+      @case ('library') { <app-library /> }
+      @case ('themes') { <app-themes /> }
+      @case ('settings') { <app-settings /> }
+    }
+  </main>
+</div>
+
+<app-version-dialog />
+
+@if (setup(); as models) {
+  <div class="overlay">
+    <div class="dialog dialog-small" role="dialog" aria-modal="true" aria-labelledby="setup-title" data-testid="setup">
+      <h1 id="setup-title">{{ 'setup.title' | t }}</h1>
+      <p>{{ 'setup.text' | t }}</p>
+      @for (m of models; track m.id) {
+        <div class="stack">
+          <div class="row"><span class="grow strong">{{ m.label }}</span>
+            <span class="muted small">@if (m.installed) { {{ 'set.installed' | t }} } @else if (m.downloading) { {{ pct(m.progress) }} % } @else { {{ m.sizeGb }} Go }</span>
+          </div>
+          <div class="progress progress-wide" role="progressbar" [attr.aria-label]="m.label" [attr.aria-valuenow]="pct(m.installed ? 1 : m.progress)" aria-valuemin="0" aria-valuemax="100">
+            <div [style.width.%]="pct(m.installed ? 1 : m.progress)"></div>
+          </div>
+          @if (m.error) { <div class="state-error small">{{ 'setup.error' | t: { detail: m.error } }}</div> }
+        </div>
+      }
+      <div class="dialog-actions">
+        <button class="btn btn-primary" (click)="download()" [disabled]="downloading()">{{ (hasError() ? 'setup.retry' : 'setup.start') | t }}</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (api.toast(); as toast) {
+  <div class="toast" [class.toast-error]="toast.error" role="status">
+    <span class="grow">{{ toast.text }}</span>
+    <button class="icon-btn" (click)="api.toast.set(null)" [attr.aria-label]="'common.close' | t"><app-icon name="close" [size]="14" /></button>
+  </div>
+}
