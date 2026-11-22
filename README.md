@@ -25,6 +25,16 @@ Au premier lancement, l'application propose de télécharger les deux modèles l
 
 Les données (base, modèles, copies des documents) sont stockées dans le dossier de données de l'application.
 
+## Dossier des modèles partagé
+
+Les fichiers GGUF peuvent être partagés avec les autres applications locales (ConsoElec, ConsoMazout, Assistant RAG, Plan Rando) pour ne télécharger qu'une fois un même modèle. Le dossier est choisi dans cet ordre :
+
+1. variable d'environnement `LOCAL_MODELS_DIR` (chemin absolu, `~` accepté) ;
+2. clé `modelsDir` du fichier commun `~/.config/local-models/config.json`, par exemple `{ "modelsDir": "~/models" }` ;
+3. sinon le dossier propre à l'application, `<userData>/models` (comportement historique).
+
+Le fichier commun est conseillé sur macOS : une application lancée depuis le Finder ne voit pas les variables du terminal. Dans un dossier partagé, supprimer un modèle depuis une application le supprime pour toutes.
+
 ## Architecture
 
 ```

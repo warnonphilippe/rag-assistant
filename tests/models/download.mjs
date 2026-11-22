@@ -1,9 +1,11 @@
 // Télécharge les modèles locaux dans le dossier de données de l'application (réutilisés ensuite par l'app).
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { LocalModels } from '../../dist-electron/core.mjs';
+import { LocalModels, resolveModelsDir } from '../../dist-electron/core.mjs';
 
-export const modelsDir = process.env.RAG_MODELS_DIR ?? join(homedir(), 'Library', 'Application Support', 'Assistant RAG', 'models');
+// RAG_MODELS_DIR, sinon le dossier partagé (LOCAL_MODELS_DIR ou ~/.config/local-models/config.json), sinon celui de l'app.
+export const modelsDir = process.env.RAG_MODELS_DIR
+  ?? resolveModelsDir(join(homedir(), 'Library', 'Application Support', 'Assistant RAG', 'models'));
 if (import.meta.url === `file://${process.argv[1]}`) {
   let last = '';
   const models = new LocalModels(modelsDir, () => {

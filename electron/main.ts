@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { Store } from './core/db.js';
 import { Engine } from './core/engine.js';
 import { ClaudeProvider, CLAUDE_MODELS, FakeChat, FakeEmbedder, LocalModels } from './core/llm.js';
+import { resolveModelsDir } from './core/models-dir.js';
 import { SUPPORTED_EXTENSIONS } from './core/parsers.js';
 import { IPC_CHANNELS, type AppEvent, type AppStatus, type IpcChannel, type IpcContract } from '../shared/types.js';
 
@@ -35,7 +36,7 @@ async function boot() {
   const dataDir = app.getPath('userData');
   mkdirSync(dataDir, { recursive: true });
   const store = new Store(join(dataDir, 'assistant.sqlite'), await vecExtensionPath());
-  const models = FAKE ? null : new LocalModels(join(dataDir, 'models'), () => emit({ type: 'status' }));
+  const models = FAKE ? null : new LocalModels(resolveModelsDir(join(dataDir, 'models')), () => emit({ type: 'status' }));
   const fakeChat = new FakeChat();
 
   const engine = new Engine({

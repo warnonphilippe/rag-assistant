@@ -41,13 +41,15 @@ export function parseJsonLoose<T>(raw: string): T | null {
 export const MODEL_FILES = {
   chat: {
     label: 'Qwen 3.5 4B (dialogue)',
-    file: 'qwen3.5-4b-q4_k_m.gguf',
+    file: 'Qwen3.5-4B-Q4_K_M.gguf',
+    legacyFile: 'qwen3.5-4b-q4_k_m.gguf',
     url: 'https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf',
     sizeGb: 2.7,
   },
   embed: {
     label: 'Qwen3 Embedding 0.6B (vectorisation)',
-    file: 'qwen3-embedding-0.6b-q8_0.gguf',
+    file: 'Qwen3-Embedding-0.6B-Q8_0.gguf',
+    legacyFile: 'qwen3-embedding-0.6b-q8_0.gguf',
     url: 'https://huggingface.co/Qwen/Qwen3-Embedding-0.6B-GGUF/resolve/main/Qwen3-Embedding-0.6B-Q8_0.gguf',
     sizeGb: 0.64,
   },
@@ -80,10 +82,20 @@ export class LocalModels implements Embedder, ChatProvider {
   constructor(private readonly dir: string, private readonly onChange: () => void) {
     mkdirSync(dir, { recursive: true });
     const state = (id: ModelId): ModelState => ({
-      id, label: MODEL_FILES[id].label, installed: existsSync(join(dir, MODEL_FILES[id].file)),
+      id, label: MODEL_FILES[id].label, installed: existsSync(this.pathOf(id)),
       downloading: false, progress: 0, sizeGb: MODEL_FILES[id].sizeGb, error: null,
     });
     this.states = { chat: state('chat'), embed: state('embed') };
+  }
+
+  /**
+   * Fichier du modèle : nom publié sur Hugging Face (commun aux autres applications quand le dossier est
+   * partagé) ; un fichier déjà téléchargé sous l'ancien nom en minuscules reste utilisé.
+   */
+  private pathOf(id: ModelId): string {
+    const current = join(this.dir, MODEL_FILES[id].file);
+    const legacy = join(this.dir, MODEL_FILES[id].legacyFile);
+    return !existsSync(current) && existsSync(legacy) ? legacy : current;
   }
 
   list(): ModelState[] { return [this.states.embed, this.states.chat]; }
@@ -138,7 +150,7 @@ export class LocalModels implements Embedder, ChatProvider {
     return this.embedLock.run(async () => {
       if (!this.embedContext) {
         const llama = await this.engine();
-        const model = await llama.loadModel({ modelPath: join(this.dir, MODEL_FILES.embed.file) });
+        const model = await llama.loadModel({ modelPath: this.pathOf('embed') });
         this.embedContext = await model.createEmbeddingContext({ contextSize: 2048 });
       }
       const out: Float32Array[] = [];
@@ -158,7 +170,7 @@ export class LocalModels implements Embedder, ChatProvider {
       const { LlamaChatSession } = await import('node-llama-cpp');
       const llama = await this.engine();
       if (!this.chatContext) {
-        this.chatModel = await llama.loadModel({ modelPath: join(this.dir, MODEL_FILES.chat.file) });
+        this.chatModel = await llama.loadModel({ modelPath: this.pathOf('chat') });
         this.chatContext = await this.chatModel.createContext({ contextSize: 8192 });
         this.chatSequence = this.chatContext.getSequence();
       }
